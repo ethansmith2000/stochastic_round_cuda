@@ -1,5 +1,5 @@
 import torch
-from stochastic_ops import copy_stochastic_cuda_, copy_stochastic_, add_stochastic_cuda_, add_stochastic_
+from stochastic_round.stochastic_ops import copy_stochastic_cuda_, copy_stochastic_, add_stochastic_cuda_, add_stochastic_
 from torch import Tensor
 
 
@@ -36,6 +36,7 @@ diff_mean = baseline.float().mean() - non_fused_result.float().mean()
 print (diff)
 print(diff_mean)
 print("Results should be of same distribution:", (diff_mean.abs() < 1e-4).item())
+from stochastic_round.copy_stochastic import copy_stochastic_
 
 
 # lets try again witth ones
