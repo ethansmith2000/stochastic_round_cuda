@@ -40,18 +40,13 @@ inline void check_cuda_error() {
 // device function for stochastic rounding
 __device__ __forceinline__ __nv_bfloat16 stochastic_rounding(
     float value,
-    uint64_t idx,
-    uint64_t seed
+    curandStatePhilox4_32_10_t* state
 ) {
-    // Initialize curand state
-    curandStatePhilox4_32_10_t state;
-    curand_init(seed, idx, 0, &state);
-
     // Convert float32 to uint32 representation
     uint32_t value_uint32 = __float_as_uint(value);
 
     // Generate random 16-bit integer
-    uint32_t r = curand(&state) & 0xFFFF;  // Use &state
+    uint32_t r = curand(state) & 0xFFFF;
 
     // Add the random integer to the lower 16 bits of the mantissa
     value_uint32 += r;
@@ -76,7 +71,11 @@ __global__ void copy_stochastic_kernel(
     size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= N) return;
 
-    target[idx] = stochastic_rounding(source[idx], idx, seed);
+    // Initialize cuRAND state once per thread
+    curandStatePhilox4_32_10_t state;
+    curand_init(seed, idx, 0, &state);
+
+    target[idx] = stochastic_rounding(source[idx], &state);
 }
 
 
@@ -115,8 +114,11 @@ __global__ void add_stochastic_kernel(
     // in place to save
     target_float = target_float + source[idx];
 
+    curandStatePhilox4_32_10_t state;
+    curand_init(seed, idx, 0, &state);
+
     // write the fp32 result to bf16 target with stochastic rounding
-    target[idx] = stochastic_rounding(target_float, idx, seed);
+    target[idx] = stochastic_rounding(target_float, &state);
 }
 
 
@@ -155,8 +157,11 @@ __global__ void sub_stochastic_kernel(
     // in place to save
     target_float = target_float - source[idx];
 
+    curandStatePhilox4_32_10_t state;
+    curand_init(seed, idx, 0, &state);
+
     // write the fp32 result to bf16 target with stochastic rounding
-    target[idx] = stochastic_rounding(target_float, idx, seed);
+    target[idx] = stochastic_rounding(target_float, &state);
 }
 
 void sub_stochastic(
@@ -193,8 +198,11 @@ __global__ void mul_stochastic_kernel(
     // in place to save
     target_float = target_float * source[idx];
 
+    curandStatePhilox4_32_10_t state;
+    curand_init(seed, idx, 0, &state);
+
     // write the fp32 result to bf16 target with stochastic rounding
-    target[idx] = stochastic_rounding(target_float, idx, seed);
+    target[idx] = stochastic_rounding(target_float, &state);
 }
 
 
@@ -232,8 +240,11 @@ __global__ void div_stochastic_kernel(
     // in place to save
     target_float = target_float / source[idx];
 
+    curandStatePhilox4_32_10_t state;
+    curand_init(seed, idx, 0, &state);
+
     // write the fp32 result to bf16 target with stochastic rounding
-    target[idx] = stochastic_rounding(target_float, idx, seed);
+    target[idx] = stochastic_rounding(target_float, &state);
 }
 
 
@@ -272,8 +283,11 @@ __global__ void lerp_stochastic_kernel(
     // in place to save
     target_float = target_float * (1 - weight) + source[idx] * weight;
 
+    curandStatePhilox4_32_10_t state;
+    curand_init(seed, idx, 0, &state);
+
     // write the fp32 result to bf16 target with stochastic rounding
-    target[idx] = stochastic_rounding(target_float, idx, seed);
+    target[idx] = stochastic_rounding(target_float, &state);
 }
 
 
@@ -314,8 +328,11 @@ __global__ void addcmul_stochastic_kernel(
     // in place to save
     target_float = target_float + tensor1[idx] * tensor2[idx] * value;
 
+    curandStatePhilox4_32_10_t state;
+    curand_init(seed, idx, 0, &state);
+
     // write the fp32 result to bf16 target with stochastic rounding
-    target[idx] = stochastic_rounding(target_float, idx, seed);
+    target[idx] = stochastic_rounding(target_float, &state);
 }
 
 void addcmul_stochastic(
@@ -359,8 +376,11 @@ __global__ void addcdiv_stochastic_kernel(
     // in place to save
     target_float = target_float + tensor1[idx] / tensor2[idx] * value;
 
+    curandStatePhilox4_32_10_t state;
+    curand_init(seed, idx, 0, &state);
+
     // write the fp32 result to bf16 target with stochastic rounding
-    target[idx] = stochastic_rounding(target_float, idx, seed);
+    target[idx] = stochastic_rounding(target_float, &state);
 }
 
 
